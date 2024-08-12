@@ -1,5 +1,5 @@
-import gym
-from gym import spaces
+import gymnasium as gym
+from gymnasium import spaces
 import numpy as np
 
 
@@ -28,7 +28,7 @@ class POMDPWrapper(gym.Wrapper):
         return state[self.partially_obs_dims].copy()
 
     def reset(self):
-        state = self.env.reset()  # no kwargs
+        state, _ = self.env.reset()  # no kwargs
         return self.get_obs(state)
 
     def step(self, action):
@@ -40,7 +40,9 @@ class POMDPWrapper(gym.Wrapper):
             action = lb + (action + 1.0) * 0.5 * (ub - lb)
             action = np.clip(action, lb, ub)
 
-        state, reward, done, info = self.env.step(action)
+        state, reward, terminated, truncated, info = self.env.step(action)
+        
+        done = terminated or truncated
 
         return self.get_obs(state), reward, done, info
 

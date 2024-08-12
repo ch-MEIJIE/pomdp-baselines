@@ -1,7 +1,10 @@
-from gym.envs.registration import register
+from gymnasium.envs.registration import register
 from envs.credit_assign.key_to_door import key_to_door
 
-delay_fn = lambda runs: (runs - 1) * 7 + 6
+
+def delay_fn(runs):
+    return (runs - 1) * 7 + 6
+
 
 for runs in [1, 2, 5, 10, 20, 40]:
     register(

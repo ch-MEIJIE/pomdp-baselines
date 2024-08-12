@@ -7,7 +7,7 @@ import os
 import torch
 import torch.nn as nn
 import torchkit.pytorch_utils as ptu
-from gym.spaces import Box, Discrete, Tuple
+from gymnasium.spaces import Box, Discrete, Tuple
 from itertools import product
 
 

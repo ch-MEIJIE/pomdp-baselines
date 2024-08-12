@@ -1,13 +1,12 @@
 # Ignore annoying warnings from imported envs
+from envs.atari.atari_env import Atari
+from envs.atari.wrappers import OneHotActionWrapper, TimeLimitWrapper
+import numpy as np
+import gymnasium as gym
 import warnings
 
-warnings.filterwarnings("ignore", ".*Box bound precision lowered by casting")  # gym
-
-import gym
-import numpy as np
-
-from envs.atari.wrappers import *
-from envs.atari.atari_env import Atari
+warnings.filterwarnings(
+    "ignore", ".*Box bound precision lowered by casting")  # gym
 
 
 def create_env(

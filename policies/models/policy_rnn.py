@@ -56,7 +56,11 @@ class ModelFreeOffPolicy_Separate_RNN(nn.Module):
         self.gamma = gamma
         self.tau = tau
 
-        self.algo = RL_ALGORITHMS[algo_name](**kwargs[algo_name], action_dim=action_dim)
+        self.algo = RL_ALGORITHMS[algo_name](
+            target_entropy=0.7, action_dim=action_dim)
+
+        if 'action_classes' in kwargs:
+            self.action_classes = kwargs['action_classes']
 
         # Critics
         self.critic = Critic_RNN(
@@ -120,7 +124,6 @@ class ModelFreeOffPolicy_Separate_RNN(nn.Module):
             deterministic=deterministic,
             return_log_prob=return_log_prob,
         )
-
         return current_action_tuple, current_internal_state
 
     def forward(self, actions, rewards, observs, dones, masks):
@@ -150,7 +153,7 @@ class ModelFreeOffPolicy_Separate_RNN(nn.Module):
         )
         num_valid = torch.clamp(masks.sum(), min=1.0)  # as denominator of loss
 
-        ### 1. Critic loss
+        # 1. Critic loss
         (q1_pred, q2_pred), q_target = self.algo.critic_loss(
             markov_actor=self.Markov_Actor,
             markov_critic=self.Markov_Critic,
@@ -177,7 +180,7 @@ class ModelFreeOffPolicy_Separate_RNN(nn.Module):
         (qf1_loss + qf2_loss).backward()
         self.critic_optimizer.step()
 
-        ### 2. Actor loss
+        # 2. Actor loss
         policy_loss, log_probs = self.algo.actor_loss(
             markov_actor=self.Markov_Actor,
             markov_critic=self.Markov_Critic,
@@ -202,10 +205,10 @@ class ModelFreeOffPolicy_Separate_RNN(nn.Module):
             "policy_loss": policy_loss.item(),
         }
 
-        ### 3. soft update
+        # 3. soft update
         self.soft_target_update()
 
-        ### 4. update others like alpha
+        # 4. update others like alpha
         if log_probs is not None:
             # extract valid log_probs
             with torch.no_grad():
@@ -235,11 +238,11 @@ class ModelFreeOffPolicy_Separate_RNN(nn.Module):
         # all are 3D tensor (T,B,dim)
         actions, rewards, dones = batch["act"], batch["rew"], batch["term"]
         _, batch_size, _ = actions.shape
-        if not self.algo.continuous_action:
-            # for discrete action space, convert to one-hot vectors
-            actions = F.one_hot(
-                actions.squeeze(-1).long(), num_classes=self.action_dim
-            ).float()  # (T, B, A)
+        # if not self.algo.continuous_action:
+        #     # for discrete action space, convert to one-hot vectors
+        #     actions = F.one_hot(
+        #         actions.squeeze(-1).long(), num_classes=self.action_dim
+        #     ).float()  # (T, B, A)
 
         masks = batch["mask"]
         obs, next_obs = batch["obs"], batch["obs2"]  # (T, B, dim)

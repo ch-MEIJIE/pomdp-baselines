@@ -1,12 +1,12 @@
-# -*- coding: future_fstrings -*-
-import os, sys
+import os
+import sys
 import time
 
 import math
 import numpy as np
 import torch
 from torch.nn import functional as F
-import gym
+import gymnasium as gym
 
 from .models import AGENT_CLASSES, AGENT_ARCHS
 from torchkit.networks import ImageEncoder
@@ -162,7 +162,8 @@ class Learner:
             sys.path.append("envs/rl-generalization")
             import sunblaze_envs
 
-            self.train_env = sunblaze_envs.make(env_name, **kwargs)  # oracle in kwargs
+            self.train_env = sunblaze_envs.make(
+                env_name, **kwargs)  # oracle in kwargs
             self.train_env.seed(self.seed)
             assert np.all(self.train_env.action_space.low == -1)
             assert np.all(self.train_env.action_space.high == 1)
@@ -178,7 +179,8 @@ class Learner:
 
             self.eval_envs = {}
             for env_name, num_eval_task in eval_envs.items():
-                eval_env = sunblaze_envs.make(env_name, **kwargs)  # oracle in kwargs
+                eval_env = sunblaze_envs.make(
+                    env_name, **kwargs)  # oracle in kwargs
                 eval_env.seed(self.seed + 1)
                 self.eval_envs[eval_env] = (
                     check_env_class(env_name),
@@ -204,7 +206,8 @@ class Learner:
             assert self.train_env.action_space.__class__.__name__ == "Discrete"
             self.act_dim = self.train_env.action_space.n
             self.act_continuous = False
-        self.obs_dim = self.train_env.observation_space.shape[0]  # include 1-dim done
+        # include 1-dim done
+        self.obs_dim = self.train_env.observation_space.shape[0]
         logger.log("obs_dim", self.obs_dim, "act_dim", self.act_dim)
 
     def init_agent(
@@ -235,11 +238,11 @@ class Learner:
         logger.log(agent_class, self.agent_arch)
 
         if image_encoder is not None:  # catch, keytodoor
-            image_encoder_fn = lambda: ImageEncoder(
+            def image_encoder_fn(): return ImageEncoder(
                 image_shape=self.train_env.image_space.shape, **image_encoder
             )
         else:
-            image_encoder_fn = lambda: None
+            def image_encoder_fn(): return None
 
         self.agent = agent_class(
             encoder=rnn_encoder_type,
@@ -376,7 +379,8 @@ class Learner:
         last_eval_num_iters = 0
         while self._n_env_steps_total < self.n_env_steps_total:
             # collect data from num_rollouts_per_iter train tasks:
-            env_steps = self.collect_rollouts(num_rollouts=self.num_rollouts_per_iter)
+            env_steps = self.collect_rollouts(
+                num_rollouts=self.num_rollouts_per_iter)
             logger.log("env steps", self._n_env_steps_total)
 
             train_stats = self.update(
@@ -416,8 +420,10 @@ class Learner:
             steps = 0
 
             if self.env_type == "meta" and self.train_env.n_tasks is not None:
-                task = self.train_tasks[np.random.randint(len(self.train_tasks))]
-                obs = ptu.from_numpy(self.train_env.reset(task=task))  # reset task
+                task = self.train_tasks[np.random.randint(
+                    len(self.train_tasks))]
+                obs = ptu.from_numpy(
+                    self.train_env.reset(task=task))  # reset task
             else:
                 obs = ptu.from_numpy(self.train_env.reset())  # reset
 
@@ -460,7 +466,8 @@ class Learner:
                             deterministic=False,
                         )
                     else:
-                        action, _, _, _ = self.agent.act(obs, deterministic=False)
+                        action, _, _, _ = self.agent.act(
+                            obs, deterministic=False)
 
                 # observe reward and next obs (B=1, dim)
                 next_obs, reward, done, info = utl.env_step(
@@ -469,11 +476,12 @@ class Learner:
                 if self.reward_clip and self.env_type == "atari":
                     reward = torch.tanh(reward)
 
-                done_rollout = False if ptu.get_numpy(done[0][0]) == 0.0 else True
+                done_rollout = False if ptu.get_numpy(
+                    done[0][0]) == 0.0 else True
                 # update statistics
                 steps += 1
 
-                ## determine terminal flag per environment
+                # determine terminal flag per environment
                 if self.env_type == "meta" and "is_goal_state" in dir(
                     self.train_env.unwrapped
                 ):
@@ -505,7 +513,8 @@ class Learner:
                         ),
                         reward=ptu.get_numpy(reward.squeeze(dim=0)),
                         terminal=np.array([term], dtype=float),
-                        next_observation=ptu.get_numpy(next_obs.squeeze(dim=0)),
+                        next_observation=ptu.get_numpy(
+                            next_obs.squeeze(dim=0)),
                     )
                 else:  # append tensors to temporary storage
                     obs_list.append(obs)  # (1, dim)
@@ -526,9 +535,11 @@ class Learner:
                     )  # (L, 1)
 
                 self.policy_storage.add_episode(
-                    observations=ptu.get_numpy(torch.cat(obs_list, dim=0)),  # (L, dim)
+                    observations=ptu.get_numpy(
+                        torch.cat(obs_list, dim=0)),  # (L, dim)
                     actions=ptu.get_numpy(act_buffer),  # (L, dim)
-                    rewards=ptu.get_numpy(torch.cat(rew_list, dim=0)),  # (L, dim)
+                    rewards=ptu.get_numpy(
+                        torch.cat(rew_list, dim=0)),  # (L, dim)
                     terminals=np.array(term_list).reshape(-1, 1),  # (L, 1)
                     next_observations=ptu.get_numpy(
                         torch.cat(next_obs_list, dim=0)
@@ -584,7 +595,8 @@ class Learner:
             obs_size = self.eval_env.unwrapped.observation_space.shape[
                 0
             ]  # original size
-            observations = np.zeros((len(tasks), self.max_trajectory_len + 1, obs_size))
+            observations = np.zeros(
+                (len(tasks), self.max_trajectory_len + 1, obs_size))
         else:  # pomdp, rmdp, generalize
             num_steps_per_episode = self.eval_env._max_episode_steps
             observations = None
@@ -593,7 +605,8 @@ class Learner:
             step = 0
 
             if self.env_type == "meta" and self.eval_env.n_tasks is not None:
-                obs = ptu.from_numpy(self.eval_env.reset(task=task))  # reset task
+                obs = ptu.from_numpy(
+                    self.eval_env.reset(task=task))  # reset task
                 observations[task_idx, step, :] = ptu.get_numpy(obs[:obs_size])
             else:
                 obs = ptu.from_numpy(self.eval_env.reset())  # reset
@@ -632,7 +645,8 @@ class Learner:
                         reward = torch.tanh(reward)
 
                     step += 1
-                    done_rollout = False if ptu.get_numpy(done[0][0]) == 0.0 else True
+                    done_rollout = False if ptu.get_numpy(
+                        done[0][0]) == 0.0 else True
 
                     if self.env_type == "meta":
                         observations[task_idx, step, :] = ptu.get_numpy(
@@ -653,7 +667,8 @@ class Learner:
                         and self.eval_env.unwrapped.is_success()
                     ):
                         success_rate[task_idx] = 1.0  # ever once reach
-                    elif "success" in info and info["success"] == True:  # keytodoor
+                    # keytodoor
+                    elif "success" in info and info["success"] == True:
                         success_rate[task_idx] = 1.0
 
                     if done_rollout:
@@ -669,10 +684,10 @@ class Learner:
 
     def log_train_stats(self, train_stats):
         logger.record_step(self._n_env_steps_total)
-        ## log losses
+        # log losses
         for k, v in train_stats.items():
             logger.record_tabular("rl_loss/" + k, v)
-        ## gradient norms
+        # gradient norms
         if self.agent_arch in [AGENT_ARCHS.Memory, AGENT_ARCHS.Memory_Markov]:
             results = self.agent.report_grad_norm()
             for k, v in results.items():
@@ -681,7 +696,7 @@ class Learner:
 
     def log(self):
         # --- log training  ---
-        ## set env steps for tensorboard: z is for lowest order
+        # set env steps for tensorboard: z is for lowest order
         logger.record_step(self._n_env_steps_total)
         logger.record_tabular("z/env_steps", self._n_env_steps_total)
         logger.record_tabular("z/rollouts", self._n_rollouts_total)
@@ -720,7 +735,8 @@ class Learner:
                     self.eval_env.reset(task=task)  # must have task argument
                     logger.add_figure(
                         "trajectory/train_task_{}".format(i),
-                        utl_eval.plot_rollouts(observations[i, :], self.eval_env),
+                        utl_eval.plot_rollouts(
+                            observations[i, :], self.eval_env),
                     )
 
                 for i, task in enumerate(
@@ -729,7 +745,8 @@ class Learner:
                     self.eval_env.reset(task=task)
                     logger.add_figure(
                         "trajectory/eval_task_{}".format(i),
-                        utl_eval.plot_rollouts(observations_eval[i, :], self.eval_env),
+                        utl_eval.plot_rollouts(
+                            observations_eval[i, :], self.eval_env),
                     )
                     if self.eval_stochastic:
                         logger.add_figure(
@@ -749,20 +766,23 @@ class Learner:
                 )
                 if self.train_env.n_tasks is not None:
                     logger.record_tabular(
-                        "metrics/success_rate_train", np.mean(success_rate_train)
+                        "metrics/success_rate_train", np.mean(
+                            success_rate_train)
                     )
                 logger.record_tabular(
                     "metrics/success_rate_eval", np.mean(success_rate_eval)
                 )
                 if self.eval_stochastic:
                     logger.record_tabular(
-                        "metrics/success_rate_eval_sto", np.mean(success_rate_eval_sto)
+                        "metrics/success_rate_eval_sto", np.mean(
+                            success_rate_eval_sto)
                     )
 
             for episode_idx in range(self.max_rollouts_per_task):
                 if self.train_env.n_tasks is not None:
                     logger.record_tabular(
-                        "metrics/return_train_episode_{}".format(episode_idx + 1),
+                        "metrics/return_train_episode_{}".format(
+                            episode_idx + 1),
                         np.mean(returns_train[:, episode_idx]),
                     )
                 logger.record_tabular(
@@ -771,7 +791,8 @@ class Learner:
                 )
                 if self.eval_stochastic:
                     logger.record_tabular(
-                        "metrics/return_eval_episode_{}_sto".format(episode_idx + 1),
+                        "metrics/return_eval_episode_{}_sto".format(
+                            episode_idx + 1),
                         np.mean(returns_eval_sto[:, episode_idx]),
                     )
 
@@ -783,13 +804,16 @@ class Learner:
                     "metrics/return_train_total",
                     np.mean(np.sum(returns_train, axis=-1)),
                 )
-            logger.record_tabular("metrics/total_steps_eval", np.mean(total_steps_eval))
             logger.record_tabular(
-                "metrics/return_eval_total", np.mean(np.sum(returns_eval, axis=-1))
+                "metrics/total_steps_eval", np.mean(total_steps_eval))
+            logger.record_tabular(
+                "metrics/return_eval_total", np.mean(
+                    np.sum(returns_eval, axis=-1))
             )
             if self.eval_stochastic:
                 logger.record_tabular(
-                    "metrics/total_steps_eval_sto", np.mean(total_steps_eval_sto)
+                    "metrics/total_steps_eval_sto", np.mean(
+                        total_steps_eval_sto)
                 )
                 logger.record_tabular(
                     "metrics/return_eval_total_sto",
@@ -822,10 +846,12 @@ class Learner:
             for k, v in success_rate_eval.items():
                 logger.record_tabular(f"metrics/succ_eval_{k}", np.mean(v))
             for k, v in total_steps_eval.items():
-                logger.record_tabular(f"metrics/total_steps_eval_{k}", np.mean(v))
+                logger.record_tabular(
+                    f"metrics/total_steps_eval_{k}", np.mean(v))
 
         elif self.env_type == "rmdp":
-            returns_eval, _, _, total_steps_eval = self.evaluate(self.eval_tasks)
+            returns_eval, _, _, total_steps_eval = self.evaluate(
+                self.eval_tasks)
             returns_eval = returns_eval.squeeze(-1)
             # np.quantile is introduced in np v1.15, so we have to use np.percentile
             cutoff = np.percentile(returns_eval, 100 * self.worst_percentile)
@@ -837,7 +863,8 @@ class Learner:
                 total_steps_eval[worst_indices],
             )
 
-            logger.record_tabular("metrics/return_eval_avg", returns_eval.mean())
+            logger.record_tabular(
+                "metrics/return_eval_avg", returns_eval.mean())
             logger.record_tabular(
                 "metrics/return_eval_worst", returns_eval_worst.mean()
             )
@@ -860,9 +887,11 @@ class Learner:
                     total_steps_eval_sto,
                 ) = self.evaluate(self.eval_tasks, deterministic=False)
 
-            logger.record_tabular("metrics/total_steps_eval", np.mean(total_steps_eval))
             logger.record_tabular(
-                "metrics/return_eval_total", np.mean(np.sum(returns_eval, axis=-1))
+                "metrics/total_steps_eval", np.mean(total_steps_eval))
+            logger.record_tabular(
+                "metrics/return_eval_total", np.mean(
+                    np.sum(returns_eval, axis=-1))
             )
             logger.record_tabular(
                 "metrics/success_rate_eval", np.mean(success_rate_eval)
@@ -870,20 +899,23 @@ class Learner:
 
             if self.eval_stochastic:
                 logger.record_tabular(
-                    "metrics/total_steps_eval_sto", np.mean(total_steps_eval_sto)
+                    "metrics/total_steps_eval_sto", np.mean(
+                        total_steps_eval_sto)
                 )
                 logger.record_tabular(
                     "metrics/return_eval_total_sto",
                     np.mean(np.sum(returns_eval_sto, axis=-1)),
                 )
                 logger.record_tabular(
-                    "metrics/success_rate_eval_sto", np.mean(success_rate_eval_sto)
+                    "metrics/success_rate_eval_sto", np.mean(
+                        success_rate_eval_sto)
                 )
 
         else:
             raise ValueError
 
-        logger.record_tabular("z/time_cost", int(time.time() - self._start_time))
+        logger.record_tabular(
+            "z/time_cost", int(time.time() - self._start_time))
         logger.record_tabular(
             "z/fps",
             (self._n_env_steps_total - self._n_env_steps_total_last)
@@ -908,5 +940,6 @@ class Learner:
         torch.save(self.agent.state_dict(), save_path)
 
     def load_model(self, ckpt_path):
-        self.agent.load_state_dict(torch.load(ckpt_path, map_location=ptu.device))
+        self.agent.load_state_dict(torch.load(
+            ckpt_path, map_location=ptu.device))
         print("load successfully from", ckpt_path)

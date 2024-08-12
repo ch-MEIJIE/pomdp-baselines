@@ -1,18 +1,19 @@
-# -*- coding: future_fstrings -*-
-import sys, os, time
+from policies.learner import Learner
+from torchkit.pytorch_utils import set_gpu_mode
+import psutil
+from pathlib import Path
+from utils import system, logger
+from absl import flags
+from ruamel.yaml import YAML
+import torch
+import numpy as np
+import socket
+import sys
+import os
+import time
 
 t0 = time.time()
-import socket
-import numpy as np
-import torch
-from ruamel.yaml import YAML
-from absl import flags
-from utils import system, logger
-from pathlib import Path
-import psutil
 
-from torchkit.pytorch_utils import set_gpu_mode
-from policies.learner import Learner
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string("cfg", None, "path to configuration file")

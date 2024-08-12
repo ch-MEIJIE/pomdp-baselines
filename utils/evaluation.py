@@ -1,19 +1,19 @@
+import pylab as pl
+import pandas as pd
+import seaborn as sns
+from sklearn.manifold import TSNE
+from torchkit import pytorch_utils as ptu
+from utils import helpers as utl
+import numpy as np
+import gymnasium as gym
+import torch
+from matplotlib.lines import Line2D
+import matplotlib.pyplot as plt
+import matplotlib.colorbar as cbar
+from matplotlib.patches import Rectangle
 import matplotlib
 
 matplotlib.use("Agg")
-from matplotlib.patches import Rectangle
-import matplotlib.colorbar as cbar
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-import torch
-import gym
-import numpy as np
-from utils import helpers as utl
-from torchkit import pytorch_utils as ptu
-from sklearn.manifold import TSNE
-import seaborn as sns
-import pandas as pd
-import pylab as pl
 
 
 sns.set(style="darkgrid")
@@ -25,7 +25,8 @@ def set_default_mpl():
     from matplotlib import cycler
 
     colors = cycler(
-        "color", ["#EE6666", "#3388BB", "#9988DD", "#EECC55", "#88BB44", "#FFBBBB"]
+        "color", ["#EE6666", "#3388BB", "#9988DD",
+                  "#EECC55", "#88BB44", "#FFBBBB"]
     )
     plt.rc(
         "axes",
@@ -70,7 +71,8 @@ def evaluate_vae(encoder, decoder, actions, rewards, states):
 
     means, logvars, hidden_states, reward_preds = [], [], [], []
     with torch.no_grad():
-        task_sample, task_mean, task_logvar, hidden_state = encoder.prior(batch_size)
+        task_sample, task_mean, task_logvar, hidden_state = encoder.prior(
+            batch_size)
     means.append(task_mean)
     logvars.append(task_logvar)
     hidden_states.append(hidden_state)
@@ -91,7 +93,8 @@ def evaluate_vae(encoder, decoder, actions, rewards, states):
         means.append(task_mean.unsqueeze(dim=0))
         logvars.append(task_logvar.unsqueeze(dim=0))
         hidden_states.append(hidden_state)
-        reward_preds.append(ptu.get_numpy(decoder(task_sample.unsqueeze(dim=0), None)))
+        reward_preds.append(ptu.get_numpy(
+            decoder(task_sample.unsqueeze(dim=0), None)))
 
     means = torch.cat(means, dim=0)
     logvars = torch.cat(logvars, dim=0)
@@ -137,7 +140,8 @@ def rollout_policy(env, learner):
                 obs=obs, task_mu=task_mean, task_std=task_logvar
             )
             with torch.no_grad():
-                action, value = learner.agent.act(obs=augmented_obs, deterministic=True)
+                action, value = learner.agent.act(
+                    obs=augmented_obs, deterministic=True)
         else:
             action, _, _, _ = learner.agent.act(obs=obs)
 
@@ -224,9 +228,12 @@ def get_test_rollout(args, env, policy, encoder=None):
                 curr_latent_mean = curr_latent_mean[0].to(ptu.device)
                 curr_latent_logvar = curr_latent_logvar[0].to(ptu.device)
 
-            episode_latent_samples[episode_idx].append(curr_latent_sample[0].clone())
-            episode_latent_means[episode_idx].append(curr_latent_mean[0].clone())
-            episode_latent_logvars[episode_idx].append(curr_latent_logvar[0].clone())
+            episode_latent_samples[episode_idx].append(
+                curr_latent_sample[0].clone())
+            episode_latent_means[episode_idx].append(
+                curr_latent_mean[0].clone())
+            episode_latent_logvars[episode_idx].append(
+                curr_latent_logvar[0].clone())
 
         for step_idx in range(1, env._max_episode_steps + 1):
 
@@ -270,7 +277,8 @@ def get_test_rollout(args, env, policy, encoder=None):
                 episode_latent_samples[episode_idx].append(
                     curr_latent_sample[0].clone()
                 )
-                episode_latent_means[episode_idx].append(curr_latent_mean[0].clone())
+                episode_latent_means[episode_idx].append(
+                    curr_latent_mean[0].clone())
                 episode_latent_logvars[episode_idx].append(
                     curr_latent_logvar[0].clone()
                 )
@@ -288,7 +296,8 @@ def get_test_rollout(args, env, policy, encoder=None):
     # clean up
     if encoder is not None:
         episode_latent_means = [torch.stack(e) for e in episode_latent_means]
-        episode_latent_logvars = [torch.stack(e) for e in episode_latent_logvars]
+        episode_latent_logvars = [torch.stack(
+            e) for e in episode_latent_logvars]
 
     episode_prev_obs = [torch.cat(e) for e in episode_prev_obs]
     episode_next_obs = [torch.cat(e) for e in episode_next_obs]
@@ -378,24 +387,28 @@ def vis_rew_pred(args, rew_pred_arr, goal, **kwargs):
             width=1,
             height=1,
             fc=cmap(
-                rew_pred_arr[ptu.get_numpy(env.task_to_id(ptu.FloatTensor(state)))[0]]
+                rew_pred_arr[ptu.get_numpy(
+                    env.task_to_id(ptu.FloatTensor(state)))[0]]
             ),
         )
         ax.add_patch(cell)
         ax.text(
             state[0] + 0.5,
             state[1] + 0.5,
-            rew_pred_arr[ptu.get_numpy(env.task_to_id(ptu.FloatTensor(state)))[0]],
+            rew_pred_arr[ptu.get_numpy(
+                env.task_to_id(ptu.FloatTensor(state)))[0]],
             ha="center",
             va="center",
             color="w",
         )
 
     plt.xlim(
-        env.observation_space.low[0] - 0.1, env.observation_space.high[0] + 1 + 0.1
+        env.observation_space.low[0] -
+        0.1, env.observation_space.high[0] + 1 + 0.1
     )
     plt.ylim(
-        env.observation_space.low[1] - 0.1, env.observation_space.high[1] + 1 + 0.1
+        env.observation_space.low[1] -
+        0.1, env.observation_space.high[1] + 1 + 0.1
     )
 
     # add goal's position on grid
@@ -434,13 +447,15 @@ def plot_discretized_belief_halfcircle(
 ):
 
     fig = plt.figure()
-    env.plot_behavior(observations, plot_env=True, color=cols_deep[3], linewidth=5)
+    env.plot_behavior(observations, plot_env=True,
+                      color=cols_deep[3], linewidth=5)
     res = center_points[1, 0] - center_points[0, 0]
     normal = pl.Normalize(0.0, 1.0)
     colors = pl.cm.gray(normal(belief_rewards))
 
     for (x, y), c in zip(center_points, colors):
-        rec = Rectangle((x, y), res, res, facecolor=c, alpha=0.85, edgecolor="none")
+        rec = Rectangle((x, y), res, res, facecolor=c,
+                        alpha=0.85, edgecolor="none")
         plt.gca().add_patch(rec)
 
     cax, _ = cbar.make_axes(plt.gca())
@@ -486,7 +501,8 @@ def plot_rollouts(observations, env):
 
     for episode in range(num_episodes):
         env.plot_behavior(
-            observations[episode * episode_len + 1 : (episode + 1) * episode_len + 1],
+            observations[episode * episode_len +
+                         1: (episode + 1) * episode_len + 1],
             plot_env=plot_env,
             color=cols_dark[episode],
             label="Episode {}".format(episode + 1),
@@ -501,7 +517,8 @@ def plot_visited_states(observations, env):
     # Targeted for 2D position tasks (PointRobot and AntSemiCircle)
     fig = plt.figure(figsize=(12, 10))
     env.plot_env()
-    plt.scatter(observations[:, 0], observations[:, 1], color=cols_dark[3], marker=".")
+    plt.scatter(observations[:, 0], observations[:, 1],
+                color=cols_dark[3], marker=".")
     # sns.kdeplot(observations[:, 0], observations[:, 1], cmap="Reds", shade=True, shade_lowest=False)
     return fig
 
@@ -550,7 +567,8 @@ def visualize_bahavior(observations, env):
     for episode in range(num_episodes):
         for t_i, timestep in enumerate(timesteps):
             plt.subplot(
-                num_episodes, len(timesteps), t_i + 1 + episode * len(timesteps)
+                num_episodes, len(timesteps), t_i + 1 +
+                episode * len(timesteps)
             )
             env.plot_behavior(
                 torch.cat(
@@ -558,7 +576,7 @@ def visualize_bahavior(observations, env):
                         observations[:1, :],
                         observations[
                             episode * episode_len
-                            + 1 : episode * episode_len
+                            + 1: episode * episode_len
                             + 1
                             + timestep
                         ],

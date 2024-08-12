@@ -98,6 +98,9 @@ class SeqReplayBuffer:
         )
 
         self._observations[indices] = observations
+        # extend one dim for action
+        if len(actions.shape) == 1:
+            actions = actions.reshape(-1, 1)
         self._actions[indices] = actions
         self._rewards[indices] = rewards
         self._terminals[indices] = terminals
@@ -120,7 +123,7 @@ class SeqReplayBuffer:
         valid_starts *= total_weights / num_valid_starts
 
         # set the num_valid_starts: indices are zeros
-        valid_starts[int(num_valid_starts) :] = 0.0
+        valid_starts[int(num_valid_starts):] = 0.0
 
         return valid_starts
 
@@ -138,7 +141,7 @@ class SeqReplayBuffer:
 
         # extract data
         batch = self._sample_data(indices)
-        # each item has 2D shape (num_episodes * sampled_seq_len, dim)
+        # each item has 2D shape (batch_size * sampled_seq_len, dim)
 
         # generate masks (B, T)
         masks = self._generate_masks(indices, batch_size)
