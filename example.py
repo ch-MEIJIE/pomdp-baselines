@@ -16,6 +16,9 @@ from buffers.seq_replay_buffer_vanilla import SeqReplayBuffer
 from utils import helpers as utl
 from torch.nn import functional as F
 
+from torch.utils.tensorboard import SummaryWriter
+from datetime import datetime
+
 
 @torch.no_grad()
 def collect_rollouts(
@@ -151,6 +154,9 @@ if __name__ == "__main__":
     # set gpu
     num_env = 1
     cuda_id = 0  # -1 if using cpu
+    current_time = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    rl_algo = 'sacd'
+    writer = SummaryWriter(f'./runs/{rl_algo}_{current_time}')
     ptu.set_gpu_mode(torch.cuda.is_available() and cuda_id >= 0, cuda_id)
 
     # env_name = "Pendulum-v1"
@@ -175,7 +181,7 @@ if __name__ == "__main__":
         action_dim=act_dim,
         action_classes=act_classes,
         encoder="lstm",
-        algo_name="sacd",
+        algo_name=rl_algo,
         action_embedding_size=8,
         observ_embedding_size=32,
         reward_embedding_size=8,
@@ -192,7 +198,7 @@ if __name__ == "__main__":
     buffer_size = 1e6
     batch_size = 32
 
-    num_iters = 150
+    num_iters = 1000
     num_init_rollouts_pool = 5
     num_rollouts_per_iter = 1
     total_rollouts = num_init_rollouts_pool + num_iters * num_rollouts_per_iter
@@ -255,3 +261,6 @@ if __name__ == "__main__":
             learning_curve["x"].append(_n_env_steps_total)
             learning_curve["y"].append(average_returns)
             print(_n_env_steps_total, average_returns)
+            writer.add_scalar('Training/Average Returns', average_returns, _n_env_steps_total)
+
+    writer.close()

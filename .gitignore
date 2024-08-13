@@ -17,3 +17,5 @@ scripts/tmp_configs/
 *.sif
 
 third_party/
+
+runs/
