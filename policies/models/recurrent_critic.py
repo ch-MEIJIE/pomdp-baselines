@@ -27,8 +27,8 @@ class Critic_RNN(nn.Module):
         self.action_dim = action_dim
         self.algo = algo
 
-        ### Build Model
-        ## 1. embed action, state, reward (Feed-forward layers first)
+        # Build Model
+        # 1. embed action, state, reward (Feed-forward layers first)
 
         self.image_encoder = image_encoder
         if self.image_encoder is None:
@@ -42,9 +42,10 @@ class Critic_RNN(nn.Module):
         self.action_embedder = utl.FeatureExtractor(
             action_dim, action_embedding_size, F.relu
         )
-        self.reward_embedder = utl.FeatureExtractor(1, reward_embedding_size, F.relu)
+        self.reward_embedder = utl.FeatureExtractor(
+            1, reward_embedding_size, F.relu)
 
-        ## 2. build RNN model
+        # 2. build RNN model
         rnn_input_size = (
             action_embedding_size + observ_embedding_size + reward_embedding_size
         )
@@ -67,7 +68,7 @@ class Critic_RNN(nn.Module):
             elif "weight" in name:
                 nn.init.orthogonal_(param)
 
-        ## 3. build another obs+act branch
+        # 3. build another obs+act branch
         shortcut_embedding_size = rnn_input_size
         if self.algo.continuous_action and self.image_encoder is None:
             # for vector-based continuous action problems
@@ -91,7 +92,7 @@ class Critic_RNN(nn.Module):
         else:
             raise NotImplementedError
 
-        ## 4. build q networks
+        # 4. build q networks
         self.qf1, self.qf2 = self.algo.build_critic(
             input_size=self.rnn_hidden_size + shortcut_embedding_size,
             hidden_sizes=dqn_layers,
@@ -155,7 +156,7 @@ class Critic_RNN(nn.Module):
         )
         assert prev_actions.shape[0] == rewards.shape[0] == observs.shape[0]
 
-        ### 1. get hidden/belief states of the whole/sub trajectories, aligned with observs
+        # 1. get hidden/belief states of the whole/sub trajectories, aligned with observs
         # return the hidden states (T+1, B, dim)
         hidden_states = self.get_hidden_states(
             prev_actions=prev_actions, rewards=rewards, observs=observs

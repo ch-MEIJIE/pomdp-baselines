@@ -130,6 +130,7 @@ def collect_rollouts(
 
 
 def update(num_updates, policy_storage):
+    print("Update")
     rl_losses_agg = {}
     # print(num_updates)
     for update in range(num_updates):
@@ -165,10 +166,11 @@ if __name__ == "__main__":
     env = PyFlytEnvWrapper(
         render_mode=None,
         env_id="PyFlyt/QuadX-Velocity-Gates-Asyn_v1",
-        seed=1
+        seed=0
     )
+    env.action_space.seed(0)
 
-    max_trajectory_len = 200
+    max_trajectory_len = 240
     # act_dim = env.action_space.shape[0]
     # obs_dim = env.observation_space.shape[0]
     act_dim = 9
@@ -262,5 +264,9 @@ if __name__ == "__main__":
             learning_curve["y"].append(average_returns)
             print(_n_env_steps_total, average_returns)
             writer.add_scalar('Training/Average Returns', average_returns, _n_env_steps_total)
+            # save model to save_model folder
+            torch.save(
+                agent.actor.state_dict(), f'./save_model/{rl_algo}_actor_{current_time}.pth'
+                )
 
     writer.close()
