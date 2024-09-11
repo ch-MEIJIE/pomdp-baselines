@@ -169,7 +169,8 @@ if __name__ == "__main__":
     env = PyFlytEnvWrapper(
         render_mode=None,
         env_id="PyFlyt/QuadX-Velocity-Gates-Asyn_v1",
-        seed=0
+        seed=32,
+        bci_accuracy=0.95
     )
     env.action_space.seed(0)
 
@@ -203,7 +204,7 @@ if __name__ == "__main__":
     buffer_size = 1e6
     batch_size = 32
 
-    num_iters = 1000
+    num_iters = 8000
     num_init_rollouts_pool = 5
     num_rollouts_per_iter = 1
     total_rollouts = num_init_rollouts_pool + num_iters * num_rollouts_per_iter
@@ -230,7 +231,7 @@ if __name__ == "__main__":
 
     # evaluation parameters
     last_eval_num_iters = 0
-    log_interval = 5
+    log_interval = 20
     eval_num_rollouts = 10
     learning_curve = {
         "x": [],
