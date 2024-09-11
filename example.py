@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 import torch
 import torchkit.pytorch_utils as ptu
-
+import os
 # import environments
 # from envs.pomdp.wrappers import POMDPWrapper
 
@@ -152,6 +152,9 @@ def update(num_updates, policy_storage):
 
 
 if __name__ == "__main__":
+    # if save_model folder does not exist, create one
+    if not os.path.exists('./save_model'):
+        os.makedirs('./save_model')
     # set gpu
     num_env = 1
     cuda_id = 0  # -1 if using cpu
